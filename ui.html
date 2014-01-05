@@ -1,0 +1,137 @@
+<html>
+  <head>
+    <title>Contact Web App</title>
+		<style>
+			body					{ margin: 0; padding: 0; font: 14px sans-serif; }
+			#label				{ font-weight: bold; margin: 0; }
+			.container		{ float: left; margin: 1%; padding: 10px; height: 93%; border: 2px solid grey; background: #eee; }
+			#contacts			{ width: 30%; }
+			#descriptions	{ width: 62%; }
+			#cache_button		{ position: absolute; bottom: 25px; }
+			.contact_name	{ cursor: pointer; }
+			.description	{  }
+		</style>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+		<script>		
+			$(document).ready(function() {
+					function update_contacts() {
+			        params = { op: "update_contacts" };
+							
+			        $.getJSON('http://localhost:8888/com', params, function(data) {
+									$('#contacts table').html('');
+									
+									data.forEach(function(contact) {
+											$('#contacts table').append('<tr><td class="contact_name" title="' + contact["contact"] + '">' + contact["name"] + '</td></tr>');
+									});
+			        });
+					}
+					
+					function contact_selected(contact_name) {
+			        params = { op: "contact_selected", data: contact_name };
+						
+			        $.getJSON('http://localhost:8888/com', params, function(data) {
+									refresh_entity_description(data);
+							});
+					}
+					
+					function new_prop_clicked(property) {
+							params = { op: "new_prop_clicked", data: property };
+							
+			        $.getJSON('http://localhost:8888/com', params, function(data) {
+									refresh_entity_description(data);
+							});
+					}
+					
+					function delete_prop_clicked(property) {
+			        params = { op: "delete_prop_clicked", data: property };
+						
+			        $.getJSON('http://localhost:8888/com', params, function(data) {
+			        		refresh_entity_description(data);
+			        });
+					}
+					
+					function keep_clicked() {
+			        params = { op: "keep_clicked" };
+					
+			        $.getJSON('http://localhost:8888/com', params, function(data) {
+			        		
+			        });
+					}
+					
+					function refresh_entity_description(data) {
+							$('#descriptions table').html('');
+				
+							data.forEach(function(description) {
+									$('#descriptions table').append('<tr><td class="property">' + description["property"] + '</td><td class="value">' + description["value"] + '</td><td><input type="button" class="delete_button" value="Delete" /></td></tr>');
+							});
+				
+							$('#descriptions table').append('<tr><td><select id="property_field"><option value="homepage">homepage</option></select></td><td><input type="text" id="value_field" /></td><td><input type="button" id="add_button" value="Add" /></td></tr>');
+					}
+					
+					update_contacts();
+					window.setTimeout(function() { contact_selected($('.contact_name:first').attr('title')); }, 1000);
+					window.setInterval(update_contacts, 2000);
+				
+			    $(document).on('click', '.contact_name', function(evt) {
+							contact_selected($(evt.currentTarget).attr('title'));
+			    });
+					
+			    $(document).on('click', '#add_button', function() {
+							var property = {'property': $('#property_field :selected').val(), 'value': $('#value_field').val()};
+							new_prop_clicked(JSON.stringify(property));
+							$('#value_field').val('');
+					});
+					
+			    $(document).on('click', '.delete_button', function(evt) {
+							var button_td = $(evt.currentTarget).parent();
+							var property = {'property': button_td.prev().prev().html(), 'value': button_td.prev().html()};
+							delete_prop_clicked(JSON.stringify(property));
+			    });
+					
+					$(document).on('click', '#cache_button', function() {
+							keep_clicked();
+					});
+			});
+		</script>
+  </head>
+  <body>
+	  <div class="container" id="contacts">
+			<p id="label">List of contacts</p>
+			
+			<table border="0" cellspacing="5" cellpadding="5">
+				{% for contact in contacts %}
+					{% block contact %}
+					<tr><td class="contact_name">{{ escape(contact) }}</td></tr>
+					{% end %}
+				{% end %}
+			</table>
+	  </div>
+	  
+    <div class="container" id="descriptions">
+			<p id="label">Description of the selected contact</p>
+			
+			<table border="0" cellspacing="5" cellpadding="5">
+				{% for triple in triples %}
+					{% block triple %}
+						<tr>
+							<td>{{ escape(triple["p"]) }}</td>
+							<td>{{ escape(triple["o"]) }}</td>
+							<td><input type="button" value="Delete" /></td>
+						</tr>
+					{% end %}
+				{% end %}
+				<tr>
+					<td>
+						<select id="property_field">
+							<option value="homepage">homepage</option>
+						</select>
+					</td>
+					<td><input type="text" id="value_field" /></td>
+					<td><input type="button" id="add_button" value="Add" /></td>
+				</tr>
+			</table>
+			
+			<input type="button" id="cache_button" value="Save to cache" />
+    </div>
+  </body>
+</html>
